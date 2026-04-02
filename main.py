@@ -1,83 +1,82 @@
 import os
+import asyncio
 import discord
 from discord.ext import commands
 from aiohttp import web
-import asyncio
-
-intents = discord.Intents.default()
-intents.message_content = True
-intents.members = True
-
-bot = commands.Bot(command_prefix='!', intents=intents)
-
-COMMANDS_DATA = {
-    "give1": {
-        "manager_role_id": 1489363262536548532,
-        "target_role_id": 1489363312323068114
-    },
-    "give2": {
-        "manager_role_id": 1489381724713386146,
-        "target_role_id": 1489381762412056720
-    },
-}
-
-@bot.event
-async def on_ready():
-    print(f"Бот {bot.user.name} успешно запущен и готов к работе!")
-
-@bot.event
-async def on_message(message):
-    if message.author.bot:
-        return
-
-    if message.content.startswith("!"):
-        parts = message.content.split()
-        command_name = parts[0][1:]
-
-        if command_name in COMMANDS_DATA:
-            config = COMMANDS_DATA[command_name]
-            
-            has_role = any(role.id == config["manager_role_id"] for role in message.author.roles)
-            if not has_role:
-                await message.channel.send("❌ У вас нет прав на использование этой команды.")
-                return
-
-            if len(message.mentions) == 0:
-                await message.channel.send(f"⚠️ Использование: `!{command_name} @Пользователь`")
-                return
-
-            member = message.mentions[0]
-            role_to_give = message.guild.get_role(config["target_role_id"])
-
-            if not role_to_give:
-                await message.channel.send("❌ Ошибка: Роль для выдачи не найдена на сервере.")
-                return
-
-            try:
-                await member.add_roles(role_to_give)
-                await message.channel.send(f"Роль {role_to_give.mention} успешно выдана пользователю {member.mention}!")
-            except discord.errors.Forbidden:
-                await message.channel.send("❌ Ошибка: У бота не хватает прав! Проверьте иерархию ролей.")
-            return
-
-    await bot.process_commands(message)
 
 async def handle(request):
-    return web.Response(text="Бот работает 24/7!")
+    return web.Response(text="Бот лиги по CS активен и работает!")
 
 async def start_web_server():
     app = web.Application()
     app.router.add_get('/', handle)
     runner = web.AppRunner(app)
     await runner.setup()
-    port = int(os.environ.get('PORT', 10000))
+    
+    port = int(os.environ.get("PORT", 8080))
     site = web.TCPSite(runner, '0.0.0.0', port)
     await site.start()
-    print(f"Веб-сервер запущен на порту {port}")
+    print(f"[*] Веб-сервер запущен на порту {port}")
+
+intents = discord.Intents.default()
+intents.message_content = True
+intents.members = True
+
+bot = commands.Bot(command_prefix="!", intents=intents)
+
+COMMANDS_DATA = {
+    "give1": {
+        "manager_role_id": 111111111111111111,
+        "target_role_id": 222222222222222222
+    },
+    "give2": {
+        "manager_role_id": 111111111111111111,
+        "target_role_id": 333333333333333333
+    }
+}
+
+@bot.event
+async def on_ready():
+    print(f"[+] Бот {bot.user.name} успешно подключился к Discord!")
+
+@bot.command()
+async def give_role(ctx, command_name: str, member: discord.Member):
+    if command_name not in COMMANDS_DATA:
+        await ctx.send("❌ Такой команды не существует.")
+        return
+        
+    role_info = COMMANDS_DATA[command_name]
+    manager_role_id = role_info["manager_role_id"]
+    target_role_id = role_info["target_role_id"]
+    
+    author_roles = [role.id for role in ctx.author.roles]
+    if manager_role_id not in author_roles:
+        await ctx.send("❌ У вас нет прав для использования этой команды.")
+        return
+        
+    target_role = ctx.guild.get_role(target_role_id)
+    if not target_role:
+        await ctx.send("❌ Роль для выдачи не найдена на этом сервере.")
+        return
+        
+    try:
+        await member.add_roles(target_role)
+        await ctx.send(f"✅ Роль **{target_role.name}** успешно выдана игроку {member.mention}!")
+    except discord.Forbidden:
+        await ctx.send("❌ У бота нет прав на выдачу ролей. Поднимите роль бота выше в списке ролей сервера!")
+    except Exception as e:
+        await ctx.send(f"❌ Произошла ошибка: {e}")
 
 async def main():
     await start_web_server()
-    await bot.start("MTQ0OTM3M3N1A1NDY0MzUyNzczMA.GLvwvj.FFGJM-PrKPFG_wlNNBihMVOV-Zb-5BG_BBxOh4")
+    
+    token = os.environ.get("DISCORD_TOKEN")
+    
+    if not token:
+        print("[!] ОШИБКА: Переменная окружения DISCORD_TOKEN не найдена!")
+        return
+        
+    await bot.start(token)
 
 if __name__ == "__main__":
     asyncio.run(main())
