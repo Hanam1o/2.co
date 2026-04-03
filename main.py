@@ -25,13 +25,13 @@ intents.members = True
 bot = commands.Bot(command_prefix="!", intents=intents)
 
 COMMANDS_DATA = {
-    "give1": {
-        "manager_role_id": 111111111111111111,
-        "target_role_id": 222222222222222222
+    "giverole": {
+        "manager_role_id": 1489414660141748334,
+        "target_role_id": 1489414725791121551
     },
-    "give2": {
-        "manager_role_id": 111111111111111111,
-        "target_role_id": 333333333333333333
+    "giverolecap": {
+        "manager_role_id": 1489415083678240959,
+        "target_role_id": 1489415114342928435
     }
 }
 
